@@ -1,0 +1,8 @@
+checkpoints/
+.idea/
+datasets/
+*/*.pyc
+*/**/*.pyc
+*/**/**/*.pyc
+*/**/**/**/*.pyc
+*/**/**/**/**/*.pyc
