@@ -46,6 +46,19 @@ def video_to_jpgs(video_path, save_path, do_resize=True, shorter_side=256):
     return num_frames == num_images
 
 
+def video_to_mp4(video_path, converted_path):
+    try:
+        subprocess.run(['ffmpeg',
+                        '-y', '-i', video_path,
+                        '-qscale', '0',
+                        converted_path],
+                       stderr=subprocess.DEVNULL,
+                       stdout=subprocess.DEVNULL).returncode
+    except subprocess.CalledProcessError:
+        return False
+    return True
+
+
 def video_has_sound(source):
     """
     Check if video contains sound.
@@ -85,7 +98,8 @@ def video_to_sound(source, target):
     cmd2 = ["ffmpeg", '-y', "-i", source, target]
 
     try:
-        subprocess.check_call(cmd2)
+        subprocess.check_call(cmd2, stderr=subprocess.DEVNULL,
+                              stdout=subprocess.DEVNULL)
     except subprocess.CalledProcessError:
         return False
 

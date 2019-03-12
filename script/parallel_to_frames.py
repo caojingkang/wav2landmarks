@@ -1,7 +1,7 @@
 import os
 import subprocess
 from multiprocessing import Process, Queue
-
+from face_landmarks_detection import FaceAligner
 import video
 
 
@@ -10,10 +10,11 @@ class Pool:
     A pool of video downloaders.
     """
 
-    def __init__(self, source_directory, target_directory, num_workers, failed_save_file):
-        assert os.path.isdir(source_directory) and os.path.isdir(target_directory)
-        self.source_directory = source_directory
-        self.target_directory = target_directory
+    def __init__(self, root_directory, mode, num_workers, failed_save_file):
+        self.source_directory = os.path.join(root_directory, mode + '_img')
+        self.target_directory = self.source_directory
+        self.keypoints_path = os.path.join(root_directory, mode + '_keypoints')
+        self.mode = mode
         self.num_workers = num_workers
         self.failed_save_file = failed_save_file
 
@@ -50,7 +51,7 @@ class Pool:
 
         # start download workers
         for _ in range(self.num_workers):
-            worker = Process(target=video_worker, args=(self.videos_queue, self.failed_queue))
+            worker = Process(target=video_worker, args=(self.videos_queue, self.failed_queue, self.keypoints_path))
             worker.start()
             self.workers.append(worker)
 
@@ -74,13 +75,14 @@ class Pool:
             self.failed_save_worker.join()
 
 
-def video_worker(videos_queue, failed_queue):
+def video_worker(videos_queue, failed_queue, keypoints_path):
     """
     Process video files.
     :param videos_queue:      Queue of video paths.
     :param failed_queue:      Queue for failed videos.
     :return:                  None.
     """
+    aligner = FaceAligner()
 
     while True:
         request = videos_queue.get()
@@ -90,21 +92,13 @@ def video_worker(videos_queue, failed_queue):
 
         video_path, save_path = request
 
-
-
         if os.path.isdir(save_path):
             continue
 
         os.makedirs(save_path)
         if video_path.endswith('mov'):
             converted_path = ".".join(video_path.split(".")[:-1] + ['mp4'])
-            runcode = subprocess.run(['ffmpeg',
-                                      '-y', '-i', video_path,
-                                      '-qscale', '0',
-                                      converted_path],
-                                     stderr=subprocess.DEVNULL,
-                                     stdout=subprocess.DEVNULL).returncode
-            if runcode != 0:
+            if not video.video_to_mp4(video_path, converted_path):
                 failed_queue.put(video_path)
                 continue
             else:
@@ -118,9 +112,8 @@ def video_worker(videos_queue, failed_queue):
         if not video.video_to_jpgs(video_path, save_path, do_resize=False):
             failed_queue.put(save_path)
 
-
-
-
+        if not aligner.translate_to_landmarks(save_path, keypoints_path):
+            failed_queue.put(save_path)
 
 
 
