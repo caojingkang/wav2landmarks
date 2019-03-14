@@ -25,7 +25,13 @@ def timer(func):
     return wraper
 
 
-def separete_video(video_path, img_dir):
+def _separete_video(video_path, img_dir):
+    '''
+    framing the video.
+    :param video_path:
+    :param img_dir: where to put the framed images
+    :return:  None
+    '''
     video = skvideo.io.vread(video_path)
     for i, frame in enumerate(video):
         skimage.io.imsave(os.path.join(img_dir, '{:0>4d}.jpg'.format(i)),
@@ -62,34 +68,44 @@ class FaceAligner:
         return landmark
 
     def translate_to_landmarks(self, img_dir, keypoints_dir):
-        img_base_dir = os.path.basename(img_dir)
-        save_dir = os.path.join(keypoints_dir, img_base_dir)
-        os.makedirs(save_dir)
+        '''
+        detect the landmmarks of faces then restore it to keypoints_dir
+        :param img_dir:
+        :param keypoints_dir:
+        :return:
+        '''
+        img_base = os.path.basename(img_dir)
+        save_dir = os.path.join(keypoints_dir, img_base)
+        os.makedirs(save_dir, exist_ok=True)
 
         filenames = os.listdir(img_dir)
         try:
+            landmarks = []
             for filename in sorted(filenames):
                 if not filename.endswith(('.jpg', '.png', '.jpeg')):
                     continue
-                print(os.path.join(img_dir, filename))
                 img = skimage.io.imread(os.path.join(img_dir, filename))
-                landmark = self.face_landmark(img)
-                print(landmark.shape)
+                landmark = self.face_landmark(img).astype(np.int16)
                 np.savetxt(os.path.join(save_dir, filename + '.txt'), landmark, delimiter=',')
+                landmarks.append(landmark)
+            landmarks = np.stack(landmarks, axis=0)
+            np.save(os.path.join(keypoints_dir, img_base), landmarks)
+
         except:
             return False
         return True
 
-    def main():
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--img_dir', type=str, help='where the face img stored')
-        parser.add_argument('--keypoints_dir', type=str, help='where to save teh face landmark detected')
-        args = parser.parse_args()
-        # separete_video(args.video_path, args.img_dir)
 
-        aligner = FaceAligner()
-        aligner.translate_to_landmarks(args.img_dir, args.keypoints_dir)
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--img_dir', type=str, help='where the face img stored')
+    parser.add_argument('--keypoints_dir', type=str, help='where to save teh face landmark detected')
+    args = parser.parse_args()
+    # separete_video(args.video_path, args.img_dir)
+    aligner = FaceAligner()
+    aligner.translate_to_landmarks(args.img_dir, args.keypoints_dir)
 
-    if __name__ == '__main__':
-        main()
-        # aligner = FaceAligner()
+
+if __name__ == '__main__':
+    main()
+    # aligner = FaceAligner()
