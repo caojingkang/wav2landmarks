@@ -10,11 +10,11 @@ class Pool:
     A pool of video downloaders.
     """
 
-    def __init__(self, root_directory, mode, num_workers, failed_save_file):
+    def __init__(self, root_directory, mode, sampling_rate, num_workers, failed_save_file):
         self.source_directory = os.path.join(root_directory, mode + '_img')
         self.target_directory = self.source_directory
         self.keypoints_path = os.path.join(root_directory, mode + '_keypoints')
-        self.mode = mode
+        self.sampling_rate = sampling_rate
         self.num_workers = num_workers
         self.failed_save_file = failed_save_file
 
@@ -51,7 +51,7 @@ class Pool:
 
         # start download workers
         for _ in range(self.num_workers):
-            worker = Process(target=video_worker, args=(self.videos_queue, self.failed_queue, self.keypoints_path))
+            worker = Process(target=video_worker, args=(self.videos_queue, self.failed_queue, self.keypoints_path, self.sampling_rate))
             worker.start()
             self.workers.append(worker)
 
@@ -75,7 +75,7 @@ class Pool:
             self.failed_save_worker.join()
 
 
-def video_worker(videos_queue, failed_queue, keypoints_path):
+def video_worker(videos_queue, failed_queue, keypoints_path, sampling_rate):
     """
     Process video files.
     :param videos_queue:      Queue of video paths.
@@ -106,7 +106,7 @@ def video_worker(videos_queue, failed_queue, keypoints_path):
                 video_path = converted_path
 
         if (not video.video_has_sound(video_path)) or \
-                (not video.video_to_sound(video_path, ".".join(video_path.split(".")[:-1] + ['wav']))):
+                not video.video_to_sound(video_path, ".".join(video_path.split(".")[:-1] + ['wav']), sampling_rate):
             failed_queue.put(video_path)
 
         if not video.video_to_jpgs(video_path, save_path, do_resize=False):

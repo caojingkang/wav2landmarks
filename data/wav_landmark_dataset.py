@@ -1,16 +1,15 @@
 import os
 
 import torch
-import torchvision
 import numpy as np
 from scipy.io import wavfile
-import json
 from torch.utils.data import Dataset
 
 from model.stft import TacotronSTFT
+from utils import encode_landmarks_seq
 
 
-class WaveLandmarksDataset(Dataset):
+class MelLandmarksDataset(Dataset):
     def __init__(self, opt, mode='train', transform=None):
         assert mode == 'train' or mode == 'test'
         self.wavs_root = os.path.join(opt['data_root'], mode + '_img')
@@ -31,16 +30,15 @@ class WaveLandmarksDataset(Dataset):
     def __getitem__(self, idx):
         wav_path = os.path.join(self.wavs_root, self.names[idx] + '.wav')
         keypoints_path = os.path.join(self.keypoints_root, self.names[idx] + '.npy')
-
         return self.get_mel_landmarks_pair(wav_path, keypoints_path)
 
     def get_mel(self, wav_path):
         sampling_rate, audio = wavfile.read(wav_path)
-        # sampling_rate, audio = 16000, np.random.normal(size=(32000))
-        print(audio.shape)
+        # sampling_rate, audio = 16000, np.random.normal(size=(48000))
+        # print('audio shape {} with sample rate {}'.format(audio.shape, sampling_rate))
         audio = torch.FloatTensor(audio.astype(np.float32))
-        if sampling_rate != self.stft.sampling_rate:
-            raise ValueError("{} SR doesn't match target {} SR".format(sampling_rate, self.stft.sampling_rate))
+        # if sampling_rate != self.stft.sampling_rate:
+        #     raise ValueError("{} SR doesn't match target {} SR".format(sampling_rate, self.stft.sampling_rate))
 
         audio_norm = audio / self.max_wav_value
         audio_norm = audio_norm.unsqueeze(0)
@@ -55,15 +53,18 @@ class WaveLandmarksDataset(Dataset):
 
     def get_mel_landmarks_pair(self, wav_path, keypoints_path):
         mel = self.get_mel(wav_path)
+        mel_len = mel.shape[-1]
         landmarks = self.get_landmark(keypoints_path)
-
+        landmarks = encode_landmarks_seq(landmarks, mel_len).T
+        landmarks = torch.FloatTensor(landmarks)
         return mel, landmarks
 
 
 if __name__ == '__main__':
+    import json
     with open('/Users/jiananwei/Desktop/GAN/wav2edge/config.json') as f:
         opt = json.load(f)
 
-    dataset = WaveLandmarksDataset(opt, mode='test')
+    dataset = MelLandmarksDataset(opt, mode='test')
     print(dataset[1][0].shape)
     print(dataset[1][1].shape)

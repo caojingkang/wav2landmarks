@@ -86,7 +86,7 @@ def video_has_sound(source):
     return True
 
 
-def video_to_sound(source, target):
+def video_to_sound(source, target, sampling_rate=None):
     """
     Extract the sound track from a video.
     :param source:    Path to a video.
@@ -95,7 +95,10 @@ def video_to_sound(source, target):
     """
 
     # convert video to sound
-    cmd2 = ["ffmpeg", '-y', "-i", source, target]
+    if sampling_rate is None:
+        cmd2 = ["ffmpeg", '-y', "-i", source, target]
+    else:
+        cmd2 = ["ffmpeg", '-y', "-i", source, '-ar', str(sampling_rate), target]
 
     try:
         subprocess.check_call(cmd2, stderr=subprocess.DEVNULL,
