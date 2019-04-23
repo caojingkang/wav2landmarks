@@ -3,7 +3,6 @@ import torch
 import cv2
 from numpy import linalg
 
-
 NUM_LANDMARKS = 68
 TWICE_LANDMARKS = NUM_LANDMARKS * 2
 
@@ -45,6 +44,7 @@ def encode_landmarks_seq(landmarks_seq, seq_len):
     # make sure that all num between [-0.5, 0.5] for tahn funciton
     return landmarks_seq / 2
 
+
 def to_gpu(x: torch.Tensor):
     x = x.contiguous()
     if torch.cuda.is_available():
@@ -52,6 +52,12 @@ def to_gpu(x: torch.Tensor):
     return torch.autograd.Variable(x)
 
 
+
+def get_mask_from_lengths(lengths):
+    max_len = torch.max(lengths).item()
+    ids = torch.arange(0, max_len) # TODO there may be bugs here when run in GPU.
+    mask = (ids < lengths.unsqueeze(1)).byte()
+    return mask
 
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from utils import to_gpu
+from utils import to_gpu, get_mask_from_lengths
 
 
 class LinearNorm(torch.nn.Module):
@@ -21,6 +21,7 @@ class LinearNorm(torch.nn.Module):
 class Wav2Edge(nn.Module):
     def __init__(self, opt):
         super(Wav2Edge, self).__init__()
+        self.n_landmarks_channels = opt['n_landmarks_channels']
         assert opt['rnn_layers_num'] % 2 == 0
         self.rnn = nn.RNN(opt['n_mel_channels'], opt['rnn_hidden_dim'] // 2,
                           num_layers=opt['rnn_layers_num'], nonlinearity='tanh',
@@ -28,7 +29,7 @@ class Wav2Edge(nn.Module):
         self.linear_layer1 = LinearNorm(opt['rnn_hidden_dim'], opt['linear_dim'], w_init_gain='relu')
         self.linear_layer2 = LinearNorm(opt['linear_dim'], opt['n_landmarks_channels'], w_init_gain='tanh')
 
-    def parse_batch(selfs, batch):
+    def parse_batch(self, batch):
         mel_padded, input_lengths, landmarks_padded, \
         gate_padded, output_lengths = batch
         mel_padded = to_gpu(mel_padded).float()
@@ -41,6 +42,15 @@ class Wav2Edge(nn.Module):
         return (mel_padded, input_lengths), \
                (landmarks_padded, output_lengths)
 
+    def parse_output(self, outputs, outputs_length=None):
+        if outputs_length is not None:
+            mask = ~get_mask_from_lengths(outputs_length)
+            mask = mask.expand(self.n_landmarks_channels, mask.size(0), mask.size(1))
+            mask = mask.permute(1, 0, 2)
+
+            outputs.masked_fill_(mask, 0.0)
+
+
     def forward(self, x: torch.Tensor, input_lengths):
         x = x.transpose(1, 2)  # batch x  time x channel
         x = nn.utils.rnn.pack_padded_sequence(
@@ -52,6 +62,8 @@ class Wav2Edge(nn.Module):
             x, batch_first=True, padding_value=0.0)
         outputs = F.relu(self.linear_layer1(x))
         outputs = F.tanh(self.linear_layer2(outputs))
+
+        masks = get_mask_from_lengths(input_lengths)
 
         outputs = outputs.transpose(1, 2)
         return outputs

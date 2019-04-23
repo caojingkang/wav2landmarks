@@ -21,7 +21,7 @@ class MelLandmarksDataset(Dataset):
             opt['filter_length'], opt['hop_length'], opt['win_length'],
             opt['n_mel_channels'], opt['sampling_rate'], opt['mel_fmin'],
             opt['mel_fmax'])
-        np.random.seed(1234)
+        np.random.seed(opt['random_seed'])
         np.random.shuffle(self.names)
 
     def __len__(self):
