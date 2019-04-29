@@ -1,6 +1,8 @@
 checkpoints/
 .idea/
 datasets/
+
+*log.txt
 */*.pyc
 */**/*.pyc
 */**/**/*.pyc

@@ -52,17 +52,17 @@ class MelLandmarksDataset(Dataset):
         return np.load(keypoints_path)
 
     def get_mel_landmarks_pair(self, wav_path, keypoints_path):
-        mel = self.get_mel(wav_path)
+        mel = self.get_mel(wav_path) # n_mel_channels * seq_len
         mel_len = mel.shape[-1]
-        landmarks = self.get_landmark(keypoints_path)
-        landmarks = encode_landmarks_seq(landmarks, mel_len).T
-        landmarks = torch.FloatTensor(landmarks)
-        return mel, landmarks
+        landmarks_seq = self.get_landmark(keypoints_path)
+        landmarks_seq = encode_landmarks_seq(landmarks_seq, mel_len).T
+        landmarks_seq = torch.FloatTensor(landmarks_seq) # TWICE_LANDMARKS * seq_len
+        return mel, landmarks_seq
 
 
 if __name__ == '__main__':
     import json
-    with open('/Users/jiananwei/Desktop/GAN/wav2edge/config.json') as f:
+    with open('../config.json') as f:
         opt = json.load(f)
 
     dataset = MelLandmarksDataset(opt, mode='test')

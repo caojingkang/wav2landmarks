@@ -1,14 +1,21 @@
 import torch
 
 from data.dataloader import prepare_dataloaders
+from data.wav_landmark_dataset import MelLandmarksDataset
 from model.model import Wav2Edge
 from torch import nn
 
 if __name__ == '__main__':
     import json
 
-    with open('/Users/jiananwei/Desktop/GAN/wav2edge/config.json') as f:
+    import json
+    with open('./config.json') as f:
         opt = json.load(f)
+
+    dataset = MelLandmarksDataset(opt, mode='test')
+    print(dataset[1][0].shape)
+    print(dataset[1][1][:, 0].shape==(136,))
+    exit(0)
 
     torch.manual_seed(opt['random_seed'])
     train_loader, _, _ = prepare_dataloaders(opt)

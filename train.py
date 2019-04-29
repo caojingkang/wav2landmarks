@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from model.model import Wav2Edge
 from model.loss import Wav2EdgeLoss
 
-from utils import prepare_directories_and_logger
+from utils import prepare_directories_and_logger, calculate_grad_norm
 from data.dataloader import prepare_dataloaders
 
 
@@ -175,6 +175,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, gpu_ids,
             loss.backward()
             grad_norm = torch.nn.utils.clip_grad_norm_(
                 model.parameters(), opt['grad_clip_thresh'])
+            # grad_norm = calculate_grad_norm(model.parameters())
 
             optimizer.step()
 
@@ -197,6 +198,10 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, gpu_ids,
 
             iteration += 1
 
+        validate(model, criterion, valset, iteration,
+                 opt['batch_size'], collate_fn, logger,
+                 opt['distributed_run'], rank)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -210,18 +215,18 @@ if __name__ == '__main__':
                         required=False, help='checkpoint path')
     parser.add_argument('--warm_start', action='store_true',
                         help='load the model only (warm start)')
-    parser.add_argument('--gpu_ids', type=str, default="",
+    parser.add_argument('--gpu_ids', type=str, default="0",
                         required=False, help='number of gpus')
     parser.add_argument('--rank', type=int, default=0,
                         required=False, help='rank of current gpu')
-    parser.add_argument('--config', type=str,
+    parser.add_argument('--config', type=str, default='./config.json',
                         required=False, help='comma separated name=value pairs')
 
     args = parser.parse_args()
 
     import json
 
-    with open('/Users/jiananwei/Desktop/GAN/wav2edge/config.json') as f:
+    with open(args.config) as f:
         opt = json.load(f)
 
     torch.backends.cudnn.enabled = opt['cudnn_enabled']

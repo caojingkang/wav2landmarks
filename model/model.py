@@ -29,6 +29,7 @@ class Wav2Edge(nn.Module):
         self.linear_layer1 = LinearNorm(opt['rnn_hidden_dim'], opt['linear_dim'], w_init_gain='relu')
         self.linear_layer2 = LinearNorm(opt['linear_dim'], opt['n_landmarks_channels'], w_init_gain='tanh')
 
+        # TODO orthogonal initialization
     def parse_batch(self, batch):
         mel_padded, input_lengths, landmarks_padded, \
         gate_padded, output_lengths = batch
@@ -52,6 +53,12 @@ class Wav2Edge(nn.Module):
 
 
     def forward(self, x: torch.Tensor, input_lengths):
+        """
+
+        :param x:
+        :param input_lengths:
+        :return:
+        """
         x = x.transpose(1, 2)  # batch x  time x channel
         x = nn.utils.rnn.pack_padded_sequence(
             x, input_lengths, batch_first=True)
@@ -63,11 +70,11 @@ class Wav2Edge(nn.Module):
         outputs = F.relu(self.linear_layer1(x))
         outputs = F.tanh(self.linear_layer2(outputs))
 
-        masks = get_mask_from_lengths(input_lengths)
-
-        outputs = outputs.transpose(1, 2)
+        outputs = outputs.transpose(1, 2).contiguous()
+        self.parse_output(outputs, input_lengths)
+        # print('model output shape:', outputs.shape)
         return outputs
 
-    def inference(self):
+    def inference(self, x):
         pass
 
