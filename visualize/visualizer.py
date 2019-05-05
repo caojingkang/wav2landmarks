@@ -14,7 +14,7 @@ class Visualizer:
         if not os.path.exists(target_seq_dir):
             os.makedirs(target_seq_dir)
 
-        for i in range(pred_seq.numpy()[0]):
+        for i in range(pred_seq.numpy().shape[0]):
             np.savetxt(target_seq_dir + '{:0>4d}.jpg.txt'.format(i), pred_seq.numpy(), delimiter=',')
             part_labels = np.zeros((h, w, 3), np.uint8)
             part_labels = self.polylines_keypoints(target_seq.numpy(), part_labels, (0, 255, 0))
