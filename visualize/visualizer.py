@@ -1,22 +1,26 @@
 import torch
 import numpy as np
 import cv2
+import os
 
 
 class Visualizer:
     def __init__(self):
         pass
 
-    def draw(self, target_seq: torch.Tensor, pred_seq: torch.Tensor, h, w, target_seq_path):
+    def draw(self, target_seq: torch.Tensor, pred_seq: torch.Tensor, h, w, target_seq_dir):
         assert len(target_seq) == len(pred_seq), 'the seq of two must be same'
         assert target_seq.shape[1:] == (68, 2) and pred_seq.shape[1:] == (68, 2)
+        if not os.path.exists(target_seq_dir):
+            os.makedirs(target_seq_dir)
 
-        np.savetxt(target_seq_path, pred_seq.numpy(), delimiter=',')
-        part_labels = np.zeros((h, w, 3), np.uint8)
-        part_labels = self.polylines_keypoints(target_seq.numpy(), part_labels, (0, 255, 0))
-        part_labels = self.polylines_keypoints(pred_seq.numpy(), part_labels, (0, 0, 255))
-        cv2.imshow('w', part_labels)
-        cv2.waitKey(0)
+        for i in range(pred_seq.numpy()[0]):
+            np.savetxt(target_seq_dir + '{:0>4d}.jpg.txt'.format(i), pred_seq.numpy(), delimiter=',')
+            part_labels = np.zeros((h, w, 3), np.uint8)
+            part_labels = self.polylines_keypoints(target_seq.numpy(), part_labels, (0, 255, 0))
+            part_labels = self.polylines_keypoints(pred_seq.numpy(), part_labels, (0, 0, 255))
+            cv2.imshow('w', part_labels)
+            cv2.waitKey(0)
 
 
     def polylines_keypoints(self, keypoints, part_labels, color):
