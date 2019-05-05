@@ -9,20 +9,22 @@ from model.stft import TacotronSTFT
 from utils import encode_landmarks_seq
 
 
-class MelLandmarksDataset(Dataset):
+class WavLandmarksDataset(Dataset):
     def __init__(self, opt, mode='train', transform=None):
-        assert mode == 'train' or mode == 'test'
-        self.wavs_root = os.path.join(opt['data_root'], mode + '_img')
-        self.keypoints_root = os.path.join(opt['data_root'], mode + '_keypoints')
-        wavs_name = filter(lambda file_name: file_name.endswith('.wav'), os.listdir(self.wavs_root))
-        self.names = list(map(lambda wav_name: '.'.join(wav_name.split('.')[:-1]), wavs_name))
+        assert mode == 'train' or mode == 'test' or mode == 'deploy'
+
         self.max_wav_value = opt['max_wav_value']
         self.stft = TacotronSTFT(
             opt['filter_length'], opt['hop_length'], opt['win_length'],
             opt['n_mel_channels'], opt['sampling_rate'], opt['mel_fmin'],
             opt['mel_fmax'])
-        np.random.seed(opt['random_seed'])
-        np.random.shuffle(self.names)
+        if mode != 'deploy':
+            self.wavs_root = os.path.join(opt['data_root'], mode + '_img')
+            self.keypoints_root = os.path.join(opt['data_root'], mode + '_keypoints')
+            wavs_name = filter(lambda file_name: file_name.endswith('.wav'), os.listdir(self.wavs_root))
+            self.names = list(map(lambda wav_name: '.'.join(wav_name.split('.')[:-1]), wavs_name))
+            np.random.seed(opt['random_seed'])
+            np.random.shuffle(self.names)
 
     def __len__(self):
         return len(self.names)
@@ -65,6 +67,6 @@ if __name__ == '__main__':
     with open('../config.json') as f:
         opt = json.load(f)
 
-    dataset = MelLandmarksDataset(opt, mode='test')
+    dataset = WavLandmarksDataset(opt, mode='test')
     print(dataset[1][0].shape)
     print(dataset[1][1].shape)

@@ -95,7 +95,7 @@ def calculate_grad_norm(parameters, norm_type=2):
 
 def get_mask_from_lengths(lengths):
     max_len = torch.max(lengths).item()
-    ids = torch.arange(0, max_len).cuda(lengths.device)  # new a tensor in specific gpu
+    ids = torch.arange(0, max_len, device=lengths.device)  # new a tensor in specific gpu
     mask = (ids < lengths.unsqueeze(1)).byte()
     return mask
 

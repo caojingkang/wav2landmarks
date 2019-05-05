@@ -24,7 +24,7 @@ class MelLandmarkCollate():
         max_input_len = input_lengths[0]
 
         dim_mel = batch[0][0].size(0)
-        mel_padded = torch.LongTensor(len(batch), dim_mel, max_input_len)
+        mel_padded = torch.FloatTensor(len(batch), dim_mel, max_input_len)
         mel_padded.zero_()
         for i in range(len(ids_sorted_decreasing)):
             mel = batch[ids_sorted_decreasing[i]][0]
@@ -46,7 +46,7 @@ class MelLandmarkCollate():
         for i in range(len(ids_sorted_decreasing)):
             landmarks = batch[ids_sorted_decreasing[i]][1]
             landmarks_padded[i, :, :landmarks.size(1)] = landmarks
-            gate_padded[i, landmarks.size(1) - 1:] = 1
+            gate_padded[i, landmarks.size(1) - 1:] = 1  # TODO not sure here is a mistake.
             output_lengths[i] = landmarks.size(1)
 
         return mel_padded, input_lengths, landmarks_padded, \

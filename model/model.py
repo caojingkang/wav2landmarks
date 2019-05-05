@@ -2,7 +2,10 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+import numpy as np
+
 from utils import to_gpu, get_mask_from_lengths
+from data.wav_landmark_dataset import WavLandmarksDataset
 
 
 class LinearNorm(torch.nn.Module):
@@ -21,6 +24,7 @@ class LinearNorm(torch.nn.Module):
 class Wav2Edge(nn.Module):
     def __init__(self, opt):
         super(Wav2Edge, self).__init__()
+        self.mel_reader = WavLandmarksDataset(opt, mode='deploy')
         self.n_landmarks_channels = opt['n_landmarks_channels']
         assert opt['rnn_layers_num'] % 2 == 0
         self.rnn = nn.RNN(opt['n_mel_channels'], opt['rnn_hidden_dim'] // 2,
@@ -71,10 +75,32 @@ class Wav2Edge(nn.Module):
         outputs = F.tanh(self.linear_layer2(outputs))
 
         outputs = outputs.transpose(1, 2).contiguous()
-        self.parse_output(outputs, input_lengths)
+        output_lengths = input_lengths
+        self.parse_output(outputs, output_lengths)
         # print('model output shape:', outputs.shape)
         return outputs
 
-    def inference(self, x):
-        pass
+    def inference(self, wav_path, output_length=10, on_cpu=False):
+        mel_spec = self.mel_reader.get_mel(wav_path)
+        input_length = [mel_spec.size(-1)]
+        mel_spec = torch.unsqueeze(mel_spec, dim=0)
+        input_length = torch.LongTensor(input_length)
+        # copy the input tensor to the device in which the model be
+        device = next(self.parameters()).device
+        mel_spec = torch.tensor(mel_spec, device=device)
+        input_length = torch.tensor(input_length, device=device)
+
+        outputs = self(mel_spec, input_length)  # 1 * n_landmarks(136) * input length
+
+
+
+
+        return outputs
+
+
+
+
+
+
+
 

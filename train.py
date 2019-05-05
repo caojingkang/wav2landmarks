@@ -74,12 +74,12 @@ def save_checkpoint(model, optimizer, learning_rate, iteration, filepath):
 
 
 def validate(model, criterion, valset, iteration, batch_size,
-             collate_fn, logger, distributed_run, rank):
+             collate_fn, logger, distributed_run, rank, num_workers=1):
     """Handles all the validation scoring and printing"""
     model.eval()
     with torch.no_grad():
         val_sampler = DistributedSampler(valset) if distributed_run else None
-        val_loader = DataLoader(valset, sampler=val_sampler, num_workers=0,
+        val_loader = DataLoader(valset, sampler=val_sampler, num_workers=num_workers,
                                 shuffle=False, batch_size=batch_size,
                                 pin_memory=False, collate_fn=collate_fn)
         # val_loader = valset
@@ -189,7 +189,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, gpu_ids,
             if iteration % opt['iters_per_checkpoint'] == 0:
                 validate(model, criterion, valset, iteration,
                          opt['batch_size'], collate_fn, logger,
-                         opt['distributed_run'], rank)
+                         opt['distributed_run'], rank, opt['num_workers'])
                 if rank == 0:
                     checkpoint_path = os.path.join(
                         output_directory, "checkpoint_{}".format(iteration))
@@ -200,7 +200,8 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, gpu_ids,
 
         validate(model, criterion, valset, iteration,
                  opt['batch_size'], collate_fn, logger,
-                 opt['distributed_run'], rank)
+                 opt['distributed_run'], rank, opt['num_workers'])
+
 
 
 if __name__ == '__main__':

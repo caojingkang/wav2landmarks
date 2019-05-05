@@ -1,13 +1,13 @@
 from torch.utils.data import DataLoader, DistributedSampler, BatchSampler
 
-from .wav_landmark_dataset import MelLandmarksDataset
+from .wav_landmark_dataset import WavLandmarksDataset
 from .data_utils import MelLandmarkCollate
 
 
 def prepare_dataloaders(opt):
     # Get data, data loaders and collate function ready
-    trainset = MelLandmarksDataset(opt, mode='train')
-    valset = MelLandmarksDataset(opt, mode='test')
+    trainset = WavLandmarksDataset(opt, mode='train')
+    valset = WavLandmarksDataset(opt, mode='test')
     collate_fn = MelLandmarkCollate(opt)
 
     train_sampler = DistributedSampler(trainset) \
